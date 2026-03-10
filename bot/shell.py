@@ -42,6 +42,21 @@ class ShellSession:
         for row in range(self._screen.lines):
             line = self._screen.display[row].rstrip()
             lines.append(line)
+        # Strip Claude Code welcome banner if present
+        # Из-за особенностей рендера ищем начало рамки на первых строках, а не только на самой первой
+        start_idx = next(
+            (i for i, line in enumerate(lines[:5]) if "╭" in line and "Claude Code" in line),
+            None
+        )
+        if start_idx is not None:
+            end_idx = next(
+                (i for i, line in enumerate(lines[start_idx:]) if "╰" in line),
+                None
+            )
+            if end_idx is not None:
+                # Отрезаем всё с верхней рамки до нижней
+                lines = lines[:start_idx] + lines[start_idx + end_idx + 1:]
+
         # Remove trailing empty lines
         while lines and not lines[-1]:
             lines.pop()
@@ -303,8 +318,14 @@ class ShellSession:
     async def send_input(self, text: str) -> None:
         """Send text as stdin to the running process."""
         if self._master_fd is not None:
-            # We must use \r for PTY to interpret it as Enter/Return
-            os.write(self._master_fd, (text + "\r").encode())
+            # Many TUI applications (like Claude Code) use React/Ink and ignore
+            # keyboard shortcuts if multiple characters are received in a single chunk
+            # (they treat it as a pasted string to prevent accidental actions).
+            # We split the text and the Enter key (\r) with a tiny delay to simulate human typing.
+            os.write(self._master_fd, text.encode("utf-8"))
+            await asyncio.sleep(0.05)
+            if self._master_fd is not None:
+                os.write(self._master_fd, b"\r")
 
     async def send_raw(self, data: bytes) -> None:
         """Send raw bytes to PTY (for Ctrl+C etc.)."""

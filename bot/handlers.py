@@ -55,7 +55,11 @@ async def handle_shell_command(
     # If shell is busy, forward as stdin input
     if shell.is_busy:
         await shell.send_input(message.text)
-        await message.answer("<i>Input sent.</i>", parse_mode="HTML")
+        # Delete the user's input message
+        try:
+            await message.delete()
+        except Exception:
+            pass
         return
 
     sender = OutputSender(bot, message.chat.id, settings.OUTPUT_UPDATE_INTERVAL)
