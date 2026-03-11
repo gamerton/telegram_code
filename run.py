@@ -8,7 +8,7 @@ from aiogram.enums import ParseMode
 from bot.config import Settings
 from bot.handlers import router
 from bot.middleware import AuthMiddleware
-from bot.shell import ShellSession
+from bot.session_manager import SessionManager
 
 logging.basicConfig(
     level=logging.INFO,
@@ -27,14 +27,16 @@ async def main() -> None:
     )
     dp = Dispatcher()
 
-    shell = ShellSession(settings.SHELL_EXECUTABLE)
-    await shell.start()
+    session_manager = SessionManager(settings.SHELL_EXECUTABLE)
+    await session_manager.initialize()
 
     # Authorization middleware
-    dp.message.middleware(AuthMiddleware(settings.AUTHORIZED_USER_ID))
+    auth = AuthMiddleware(settings.AUTHORIZED_USER_ID)
+    dp.message.middleware(auth)
+    dp.callback_query.middleware(auth)
 
     # Dependency injection
-    dp["shell"] = shell
+    dp["session_manager"] = session_manager
     dp["settings"] = settings
 
     # Register handlers
@@ -43,7 +45,7 @@ async def main() -> None:
     try:
         await dp.start_polling(bot)
     finally:
-        await shell.close()
+        await session_manager.close_all()
         await bot.session.close()
 
 
