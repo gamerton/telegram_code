@@ -1,85 +1,129 @@
 # Telegram Terminal Bot
 
-Полноценный удалённый Linux-терминал прямо в Telegram. Это не просто скрипт для проксирования команд. Бот поднимает настоящую **persistent PTY-сессию** (pseudo-terminal), разворачивает виртуальный экран и корректно поддерживает интерактивные TUI-приложения (Claude Code, `vim`, `htop`, `nano`), потоковый вывод и ввод данных в реальном времени.
+A full-featured remote Linux terminal inside Telegram. This is not just a simple command proxy — the bot runs a real **persistent PTY session** (pseudo-terminal), renders a virtual screen, and correctly handles interactive TUI applications (Claude Code, `vim`, `htop`, `nano`), streaming output, and real-time input.
 
-## ✨ Ключевые возможности
+## Features
 
-* **Множество сессий** — можно держать несколько независимых PTY-сессий одновременно и переключаться между ними через inline-кнопки. Фоновые сессии продолжают работать.
-* **Persistent сессия** — один процесс `bash` живёт между отправками сообщений. Работает `cd`, сохраняются переменные окружения и история команд.
-* **Поддержка TUI (Text User Interface)** — благодаря встроенному эмулятору терминала, интерфейсы `claude`, `vim` или `htop` отображаются корректно. Перемещения курсора, очистка экрана и альтернативные буферы отрабатываются как в настоящем терминале.
-* **Интерактивный ввод** — если запущенная программа ждет ввода (например, ответ `y/n` или диалог в Claude Code), любые отправленные вами сообщения перенаправляются в `stdin` процесса.
-* **Потоковое обновление (Streaming)** — для долго выполняющихся команд бот автоматически обновляет сообщение в Telegram (с учетом rate limits API), показывая процесс в реальном времени.
-* **Пагинация длинного вывода** — если вывод (или история прокрутки) превышает лимит Telegram (4096 символов), он автоматически бьется на несколько сообщений.
-* **Безопасность** — доступ строго ограничен одному пользователю по его Telegram ID. Все остальные игнорируются на уровне middleware (сообщения и callback-кнопки).
+- **Multiple sessions** — maintain several independent PTY sessions simultaneously, switch between them via inline buttons. Background sessions keep running.
+- **Persistent session** — a single `bash` process lives between messages. `cd` works, environment variables and command history are preserved.
+- **TUI support** — thanks to the built-in terminal emulator, interfaces like `claude`, `vim`, or `htop` render correctly. Cursor movements, screen clears, and alternate buffers work just like in a real terminal.
+- **Interactive input** — if a running program awaits input (e.g., `y/n` or a dialog in Claude Code), any messages you send are forwarded to the process's `stdin`.
+- **Streaming output** — for long-running commands, the bot automatically updates the Telegram message (respecting API rate limits), showing progress in real time.
+- **Long output pagination** — if output exceeds Telegram's 4096-character limit, it is automatically split into multiple messages.
+- **Single-user security** — access is strictly limited to one user by Telegram ID. All others are silently ignored at the middleware level (messages and callback buttons).
 
-## 🚀 Установка и запуск
+## Setup
 
-1. **Склонируйте репозиторий** и перейдите в папку проекта.
-2. **Создайте виртуальное окружение и установите зависимости:**
-   ```bash
-   python3 -m venv .venv
-   source .venv/bin/activate
-   pip install -r requirements.txt
-   ```
-3. **Настройте переменные окружения:**
-   ```bash
-   cp .env.example .env
-   ```
-   Отредактируйте файл `.env`:
-   * `BOT_TOKEN` — токен вашего бота (получить у [@BotFather](https://t.me/BotFather)).
-   * `AUTHORIZED_USER_ID` — ваш Telegram ID (узнать у [@userinfobot](https://t.me/userinfobot) или аналогичных).
-4. **Запустите бота:**
-   ```bash
-   python run.py
-   ```
+**1. Clone the repository:**
+```bash
+git clone https://github.com/YOUR_USERNAME/telegram-terminal-bot.git
+cd telegram-terminal-bot
+```
 
-*(Рекомендуется запускать бота под обычным пользователем (не root), либо настроить системный сервис `systemd` / Docker контейнер.)*
+**2. Create a virtual environment and install dependencies:**
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
 
-## 📱 Использование
+**3. Configure environment variables:**
+```bash
+cp .env.example .env
+```
 
-* Просто **напишите любую команду** (например, `ls -la`, `pwd`, `claude`) — она выполнится в терминале.
-* Во время работы команды, любые новые текстовые сообщения будут отправлены запущенному процессу как ввод.
-* `/cancel` — мягкая отмена текущей выполняющейся команды (последовательно посылает `SIGINT` → `SIGTERM` → `SIGKILL`).
-* `/reset` — жесткий сброс активной сессии. Текущий процесс `bash` убивается, поднимается новый чистый PTY. Спасает, если сессия зависла окончательно.
-* `/sessions` — показывает список всех сессий с inline-кнопками: переключиться, создать новую или удалить неактивную.
-* `/new <name>` — создать новую сессию с именем и сразу переключиться на неё.
-* `/help` — краткая справка.
+Edit `.env`:
+- `BOT_TOKEN` — your bot token from [@BotFather](https://t.me/BotFather)
+- `AUTHORIZED_USER_ID` — your Telegram user ID (get it from [@userinfobot](https://t.me/userinfobot))
 
-### Работа с несколькими сессиями
+**4. Run the bot:**
+```bash
+python run.py
+```
 
-Пока одна сессия занята (например, в ней запущен `claude` или долгая команда), можно переключиться на другую:
+> It is recommended to run the bot as a regular user (not root). For production use, consider setting up a `systemd` service or Docker container.
 
-1. Напишите `/sessions` — бот покажет список сессий с кнопками.
-2. Нажмите на нужную сессию — активная сессия сменится.
-3. Теперь ваши команды идут в новую сессию, а фоновая продолжает работать.
+### systemd service (optional)
 
-Обычный текст (не slash-команда) пока активная сессия занята — отправляется как `stdin` запущенному процессу (ответ на диалог, ввод в `vim` и т.д.).
+Create `/etc/systemd/system/telegram-terminal-bot.service`:
 
----
+```ini
+[Unit]
+Description=Telegram Terminal Bot
+After=network.target
 
-## 🧠 Архитектура и интересные технические решения
+[Service]
+Type=simple
+User=YOUR_USER
+WorkingDirectory=/path/to/telegram-terminal-bot
+ExecStart=/path/to/telegram-terminal-bot/.venv/bin/python run.py
+Restart=on-failure
 
-Разработка полноценного моста "Telegram ↔ TTY" требует решения ряда неочевидных проблем. Вот как они решены в этом проекте:
+[Install]
+WantedBy=multi-user.target
+```
 
-### 1. Виртуальный эмулятор терминала (`pyte`)
-При TTY-выводе программы отправляют ANSI-escape последовательности не только для цвета, но и для управления курсором (`перемести курсор на 5 строк вверх`, `очисти экран`). Если просто конкатенировать и отправлять в Telegram "сырой" вывод, интерфейс TUI-приложений (как *Claude Code*) превратится в кашу из системных символов.
-**Решение:** Весь вывод из `pty` прогоняется через виртуальный экран `pyte.Screen` размером 120x40. Бот делает "скриншот" этого текстового экрана (метод `_render_screen`) и именно этот чистый, правильно отрендеренный текст отправляется в Telegram. А строки, выходящие за верхний край терминала, перехватываются и сохраняются в историю прокрутки.
+Then:
+```bash
+sudo systemctl enable --now telegram-terminal-bot
+```
 
-### 2. Скрытое выполнение и система маркеров
-Для определения того, что команда завершила работу, бот отправляет в терминал уникальный UUID-маркер после её завершения.
-**Проблема:** Если отправить `command; echo "MARKER"`, строка команды и маркер могут "отпечататься" (echo) на экране виртуального терминала и попасть в Telegram, засоряя вывод или смешиваясь с выводом интерактивных команд.
-**Решение:**
-- Оригинальная команда кодируется в `base64`, чтобы избежать проблем с экранированием (`eval "$(echo <b64> | base64 -d)"`).
-- Перед отправкой маркера бот на лету отключает видимость ввода (`stty -echo`).
-- Вся цепочка "выполнение → восстановление терминала (`stty sane`) → печать маркера" отправляется единой многострочной командой через `;`. Это не позволяет TUI-приложениям перехватить наши служебные скрипты из буфера ввода PTY до того, как они завершатся.
+## Usage
 
-### 3. Интерактивный ввод (Enter-проблема)
-Когда вы отправляете текст интерактивному приложению (через метод `send_input`), обычный символ переноса строки `\n` (Line Feed) воспринимается PTY-монитором просто как перемещение курсора вниз, а не как подтверждение ввода команды.
-**Решение:** Ввод пересылается с принудительным добавлением символа `\r` (Carriage Return), который Linux PTY корректно интерпретирует как нажатие клавиши `Enter`.
+- **Send any command** (e.g., `ls -la`, `pwd`, `claude`) — it will execute in the terminal.
+- While a command is running, any new text messages are forwarded to the running process as input.
+- `/cancel` — gracefully cancel the current command (sends `SIGINT` → `SIGTERM` → `SIGKILL`).
+- `/reset` — hard reset of the active session. The current `bash` process is killed and a fresh PTY is started. Use this if a session hangs completely.
+- `/sessions` — show all sessions with inline buttons: switch, create new, or delete.
+- `/new <name>` — create a new named session and switch to it immediately.
+- `/help` — short usage reference.
 
-### 4. Фоновый polling и Telegram Rate Limits
-Долгоработающая команда (поиск файлов, генерация кода) может отдавать ответ частями или висеть молча.
-**Решение:** Процесс чтения PTY (`shell.py`) и процесс обновления сообщения (`sender.py`) асинхронно развязаны. `shell` постоянно рендерит виртуальный экран в буфер в памяти. А `sender` запускает фоновый таск, который раз в `2.0` секунды забирает слепок экрана и вызывает `edit_text` у Telegram сообщения, если слепок изменился. Это даёт ощущение плавного "live-вывода" и страхует от Flood-блокировок со стороны API (`TelegramRetryAfter`).
+### Working with multiple sessions
 
----
-**Стек:** `Python 3.12+`, `aiogram 3.x`, `pyte`, `pty`
+While one session is busy (e.g., running `claude` or a long command), you can switch to another:
+
+1. Send `/sessions` — the bot shows the session list with buttons.
+2. Tap a session — the active session changes.
+3. Your commands now go to the new session; the background one keeps running.
+
+Any plain text sent while the active session is busy is forwarded as `stdin` to the running process (dialog answers, vim input, etc.).
+
+## Architecture
+
+Building a proper Telegram ↔ TTY bridge requires solving several non-obvious problems. Here is how they are handled:
+
+### 1. Virtual terminal emulator (`pyte`)
+TUI programs send ANSI escape sequences not just for color, but for cursor control (`move cursor 5 lines up`, `clear screen`). Simply concatenating and sending raw PTY output to Telegram would turn TUI application interfaces into a garbled mess of control characters.
+
+**Solution:** All PTY output is fed through a `pyte.Screen` virtual terminal (120×40). The bot takes a "screenshot" of this text screen (`_render_screen`) and sends that clean, properly rendered text to Telegram. Lines that scroll off the top of the terminal are captured and stored in a scroll history buffer.
+
+### 2. Hidden execution and end markers
+To detect when a command has finished, the bot sends a unique UUID marker after command execution.
+
+**Problem:** If sent as `command; echo "MARKER"`, both the command line and marker may be echoed on the virtual terminal screen, appearing in Telegram output or mixing with interactive command output.
+
+**Solution:**
+- The original command is base64-encoded to avoid quoting/escaping issues (`eval "$(echo <b64> | base64 -d)"`).
+- Before printing the marker, terminal input echo is disabled (`stty -echo`).
+- The entire chain — "execute → restore terminal (`stty sane`) → print marker" — is sent as a **single line** separated by `;`. This prevents TUI applications from reading the housekeeping commands from the PTY input buffer before they finish.
+
+### 3. Interactive input (Enter problem)
+When forwarding text to an interactive application via `send_input`, a plain `\n` (Line Feed) is interpreted by the PTY as a cursor-down movement, not as Enter confirmation.
+
+**Solution:** Input is sent with an explicit `\r` (Carriage Return) appended, which Linux PTY correctly interprets as the Enter key.
+
+### 4. Background polling and Telegram rate limits
+A long-running command may produce output in parts or be silent for a while.
+
+**Solution:** The PTY reading process (`shell.py`) and the message update process (`sender.py`) are decoupled asynchronously. `shell` continuously renders the virtual screen into an in-memory buffer. `sender` runs a background task that every `2.0` seconds reads a screen snapshot and calls `edit_text` on the Telegram message if it changed. This creates a smooth "live output" feel while protecting against Telegram API flood limits.
+
+## Stack
+
+- Python 3.12+
+- [aiogram 3.x](https://github.com/aiogram/aiogram)
+- [pyte](https://github.com/selectel/pyte)
+- Standard library: `pty`, `asyncio`, `subprocess`
+
+## License
+
+MIT
