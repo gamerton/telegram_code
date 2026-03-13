@@ -22,7 +22,7 @@ A full-featured remote Linux terminal inside Telegram. This is not just a simple
 
 **1. Clone the repository:**
 ```bash
-git clone https://github.com/YOUR_USERNAME/telegram-terminal-bot.git
+git clone https://github.com/gamerton/telegram-terminal-bot.git
 cd telegram-terminal-bot
 ```
 
@@ -141,7 +141,7 @@ PTY reading (`shell.py`) and message updating (`sender.py`) are decoupled asynch
 
 **1. Клонируйте репозиторий:**
 ```bash
-git clone https://github.com/YOUR_USERNAME/telegram-terminal-bot.git
+git clone https://github.com/gamerton/telegram-terminal-bot.git
 cd telegram-terminal-bot
 ```
 
@@ -239,6 +239,14 @@ TUI-программы отправляют ANSI-escape-последовател
 - [aiogram 3.x](https://github.com/aiogram/aiogram)
 - [pyte](https://github.com/selectel/pyte)
 - Стандартная библиотека: `pty`, `asyncio`, `subprocess`
+
+---
+
+## Support / Поддержать
+
+If you find this project useful, you can support the author:
+
+**[Поддержать на Boosty](https://boosty.to/gamerton/donate)**
 
 ---
 
